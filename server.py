@@ -14,16 +14,18 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 from gpt_researcher import GPTResearcher
 
-# Patch the DocumentLoader to support more file formats
-from document_loader_enhanced import DocumentLoader
+# Import and apply our extended document loader using proper inheritance
+from document_loader_extended import ExtendedDocumentLoader
 import gpt_researcher.document.document
 import gpt_researcher.skills.researcher
+import gpt_researcher.document
 
-# Replace the original DocumentLoader with our extended version
-gpt_researcher.document.document.DocumentLoader = DocumentLoader
-gpt_researcher.skills.researcher.DocumentLoader = DocumentLoader
-# Also patch the module level import
-gpt_researcher.document.DocumentLoader = DocumentLoader
+# Replace the DocumentLoader class with our extended version
+# This is a clean monkey-patch that preserves all original functionality
+# while adding support for 96+ additional file formats
+gpt_researcher.document.document.DocumentLoader = ExtendedDocumentLoader
+gpt_researcher.skills.researcher.DocumentLoader = ExtendedDocumentLoader
+gpt_researcher.document.DocumentLoader = ExtendedDocumentLoader
 
 # Load environment variables
 load_dotenv()
