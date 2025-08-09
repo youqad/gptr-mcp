@@ -2,13 +2,26 @@
 
 <img src="https://github.com/assafelovic/gpt-researcher/assets/13554167/20af8286-b386-44a5-9a83-3be1365139c3" alt="Logo" width="80">
 
-# 🔍 GPT Researcher MCP Server
+# 🔍 GPT Researcher MCP Server with Local Document Support
 
 [![Website](https://img.shields.io/badge/Official%20Website-gptr.dev-teal?style=for-the-badge&logo=world&logoColor=white&color=0891b2)](https://gptr.dev)
 [![Documentation](https://img.shields.io/badge/Documentation-DOCS-f472b6?logo=googledocs&logoColor=white&style=for-the-badge)](https://docs.gptr.dev/docs/gpt-researcher/mcp-server/getting-started)
 [![Discord Follow](https://dcbadge.vercel.app/api/server/QgZXvJAccX?style=for-the-badge&theme=clean-inverted&?compact=true)](https://discord.gg/QgZXvJAccX)
 
 </div>
+
+## 🆕 Enhanced: Local Document Support
+
+This fork adds **local document research capabilities** to GPT Researcher MCP, allowing you to:
+- 📚 Search your local document corpus (PDFs, text files, markdown, etc.)
+- 🌐 Perform web-only searches
+- 🔄 Use hybrid mode to search both web and local documents
+
+Perfect for:
+- Academic research with private paper collections
+- Corporate knowledge bases
+- Personal document libraries
+- Fact-checking against known sources
 
 ## Why GPT Researcher MCP?
 
@@ -57,10 +70,15 @@ For detailed setup instructions, see the [full Claude Desktop Integration sectio
 ### Resources
 - `research_resource`: Get web resources related to a given task via research.
 
-### Primary Tools
+### Primary Tools (Enhanced)
 
-- `deep_research`: Performs deep web research on a topic, finding the most reliable and relevant information
-- `quick_search`: Performs a fast web search optimized for speed over quality, returning search results with snippets. Supports any GPTR supported web retriever such as Tavily, Bing, Google, etc... Learn more [here](https://docs.gptr.dev/docs/gpt-researcher/search-engines)
+- `deep_research`: Performs deep research on a topic
+  - **NEW**: `report_source` parameter - "web" (default), "local", or "hybrid"
+  - Web mode: Searches the internet for information
+  - Local mode: Searches your local document corpus
+  - Hybrid mode: Searches both web and local documents
+- `quick_search`: Performs a fast search optimized for speed over quality
+  - **NEW**: `report_source` parameter - "web" (default), "local", or "hybrid"
 - `write_report`: Generate a report based on research results
 - `get_research_sources`: Get the sources used in the research
 - `get_research_context`: Get the full context of the research
@@ -104,8 +122,38 @@ pip install -r requirements.txt
    ```bash
    OPENAI_API_KEY=your_openai_api_key
    TAVILY_API_KEY=your_tavily_api_key
+   
+   # For local document research (optional)
+   DOC_PATH=/path/to/your/document/corpus
    ```
 You can also add any other env variable for your GPT Researcher configuration.
+
+## 📚 Setting Up Local Document Research
+
+To enable local document research:
+
+1. **Create a document corpus directory:**
+   ```bash
+   mkdir ~/my-research-corpus
+   ```
+
+2. **Add your documents to the corpus:**
+   - Supported formats: PDF, TXT, Markdown, CSV, Excel, PowerPoint, Word
+   - Organize in subdirectories as needed
+
+3. **Set the DOC_PATH environment variable:**
+   ```bash
+   export DOC_PATH=~/my-research-corpus
+   # Or add to your .env file:
+   # DOC_PATH=/Users/yourname/my-research-corpus
+   ```
+
+4. **Use the local search mode:**
+   ```python
+   # In your MCP client (Claude, etc.)
+   deep_research("Your query", report_source="local")  # Search only local docs
+   deep_research("Your query", report_source="hybrid") # Search both web and local
+   ```
 
 ## 🚀 Running the MCP Server
 

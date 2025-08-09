@@ -50,24 +50,42 @@ async def research_resource(topic: str) -> str:
     """
     Provide research context for a given topic directly as a resource.
     
-    This allows LLMs to access web-sourced information without explicit function calls.
+    This allows LLMs to access web-sourced or local document information without explicit function calls.
     
     Args:
-        topic: The research topic or query
+        topic: The research topic or query (can include "[local]" or "[hybrid]" prefix for mode)
         
     Returns:
         String containing the research context with source information
     """
+    # Parse report_source from topic if specified
+    report_source = "web"
+    actual_topic = topic
+    
+    if topic.startswith("[local]"):
+        report_source = "local"
+        actual_topic = topic[7:].strip()
+    elif topic.startswith("[hybrid]"):
+        report_source = "hybrid"
+        actual_topic = topic[8:].strip()
+    
     # Check if we've already researched this topic
-    if topic in research_store:
-        logger.info(f"Returning cached research for topic: {topic}")
-        return research_store[topic]["context"]
+    cache_key = f"{report_source}:{actual_topic}"
+    if cache_key in research_store:
+        logger.info(f"Returning cached {report_source} research for topic: {actual_topic}")
+        return research_store[cache_key]["context"]
     
     # If not, conduct the research
-    logger.info(f"Conducting new research for resource on topic: {topic}")
+    logger.info(f"Conducting new {report_source} research for resource on topic: {actual_topic}")
     
-    # Initialize GPT Researcher
-    researcher = GPTResearcher(topic)
+    # Check DOC_PATH for local/hybrid modes
+    if report_source in ["local", "hybrid"]:
+        doc_path = os.getenv("DOC_PATH")
+        if not doc_path or not os.path.exists(doc_path):
+            return f"Error: DOC_PATH not configured properly for {report_source} research"
+    
+    # Initialize GPT Researcher with report_source
+    researcher = GPTResearcher(query=actual_topic, report_source=report_source)
     
     try:
         # Conduct the research
@@ -79,36 +97,65 @@ async def research_resource(topic: str) -> str:
         source_urls = researcher.get_source_urls()
         
         # Format with sources included
-        formatted_context = format_context_with_sources(topic, context, sources)
+        formatted_context = format_context_with_sources(actual_topic, context, sources)
+        formatted_context = f"[Research Mode: {report_source.upper()}]\n\n{formatted_context}"
         
-        # Store for future use
-        store_research_results(topic, context, sources, source_urls, formatted_context)
+        # Store for future use with mode-specific key
+        research_store[cache_key] = {
+            "context": formatted_context,
+            "sources": sources,
+            "source_urls": source_urls
+        }
         
         return formatted_context
     except Exception as e:
-        return f"Error conducting research on '{topic}': {str(e)}"
+        return f"Error conducting {report_source} research on '{actual_topic}': {str(e)}"
 
 
 @mcp.tool()
-async def deep_research(query: str) -> Dict[str, Any]:
+async def deep_research(query: str, report_source: str = "web") -> Dict[str, Any]:
     """
-    Conduct a web deep research on a given query using GPT Researcher. 
-    Use this tool when you need time-sensitive, real-time information like stock prices, news, people, specific knowledge, etc.
+    Conduct deep research on a given query using GPT Researcher. 
+    Can search the web, local documents, or both (hybrid mode).
     
     Args:
         query: The research query or topic
+        report_source: Research source - "web" (default), "local" (uses DOC_PATH env var), or "hybrid" (both)
         
     Returns:
         Dict containing research status, ID, and the actual research context and sources
         that can be used directly by LLMs for context enrichment
     """
-    logger.info(f"Conducting research on query: {query}...")
+    # Validate report_source
+    valid_sources = ["web", "local", "hybrid"]
+    if report_source not in valid_sources:
+        return handle_exception(
+            ValueError(f"Invalid report_source: {report_source}. Must be one of {valid_sources}"),
+            "Research"
+        )
+    
+    # Check DOC_PATH for local/hybrid modes
+    if report_source in ["local", "hybrid"]:
+        doc_path = os.getenv("DOC_PATH")
+        if not doc_path:
+            return handle_exception(
+                ValueError("DOC_PATH environment variable not set. Required for local/hybrid research."),
+                "Research"
+            )
+        if not os.path.exists(doc_path):
+            return handle_exception(
+                ValueError(f"DOC_PATH directory does not exist: {doc_path}"),
+                "Research"
+            )
+        logger.info(f"Using local documents from: {doc_path}")
+    
+    logger.info(f"Conducting {report_source} research on query: {query}...")
     
     # Generate a unique ID for this research session
     research_id = str(uuid.uuid4())
     
-    # Initialize GPT Researcher
-    researcher = GPTResearcher(query)
+    # Initialize GPT Researcher with report_source
+    researcher = GPTResearcher(query=query, report_source=report_source)
     
     # Start research
     try:
@@ -127,6 +174,7 @@ async def deep_research(query: str) -> Dict[str, Any]:
         return create_success_response({
             "research_id": research_id,
             "query": query,
+            "report_source": report_source,
             "source_count": len(sources),
             "context": context,
             "sources": format_sources_for_response(sources),
@@ -137,35 +185,59 @@ async def deep_research(query: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def quick_search(query: str) -> Dict[str, Any]:
+async def quick_search(query: str, report_source: str = "web") -> Dict[str, Any]:
     """
-    Perform a quick web search on a given query and return search results with snippets.
+    Perform a quick search on a given query and return search results with snippets.
     This optimizes for speed over quality and is useful when an LLM doesn't need in-depth
     information on a topic.
     
     Args:
         query: The search query
+        report_source: Search source - "web" (default), "local" (uses DOC_PATH env var), or "hybrid" (both)
         
     Returns:
         Dict containing search results and snippets
     """
-    logger.info(f"Performing quick search on query: {query}...")
+    # Validate report_source
+    valid_sources = ["web", "local", "hybrid"]
+    if report_source not in valid_sources:
+        return handle_exception(
+            ValueError(f"Invalid report_source: {report_source}. Must be one of {valid_sources}"),
+            "Quick search"
+        )
+    
+    # Check DOC_PATH for local/hybrid modes
+    if report_source in ["local", "hybrid"]:
+        doc_path = os.getenv("DOC_PATH")
+        if not doc_path:
+            return handle_exception(
+                ValueError("DOC_PATH environment variable not set. Required for local/hybrid search."),
+                "Quick search"
+            )
+        if not os.path.exists(doc_path):
+            return handle_exception(
+                ValueError(f"DOC_PATH directory does not exist: {doc_path}"),
+                "Quick search"
+            )
+    
+    logger.info(f"Performing quick {report_source} search on query: {query}...")
     
     # Generate a unique ID for this search session
     search_id = str(uuid.uuid4())
     
-    # Initialize GPT Researcher
-    researcher = GPTResearcher(query)
+    # Initialize GPT Researcher with report_source
+    researcher = GPTResearcher(query=query, report_source=report_source)
     
     try:
         # Perform quick search
         search_results = await researcher.quick_search(query=query)
         mcp.researchers[search_id] = researcher
-        logger.info(f"Quick search completed for ID: {search_id}")
+        logger.info(f"Quick {report_source} search completed for ID: {search_id}")
         
         return create_success_response({
             "search_id": search_id,
             "query": query,
+            "report_source": report_source,
             "result_count": len(search_results) if search_results else 0,
             "search_results": search_results
         })
@@ -276,6 +348,25 @@ def run_server():
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("OPENAI_API_KEY not found. Please set it in your .env file.")
         return
+
+    # Check and log DOC_PATH for local document research
+    doc_path = os.getenv("DOC_PATH")
+    if doc_path:
+        if os.path.exists(doc_path):
+            logger.info(f"Local document path configured: {doc_path}")
+            print(f"📚 Local documents available at: {doc_path}")
+            # List document count
+            try:
+                file_count = sum(len(files) for _, _, files in os.walk(doc_path))
+                print(f"   Found {file_count} files in corpus")
+            except:
+                pass
+        else:
+            logger.warning(f"DOC_PATH set but directory doesn't exist: {doc_path}")
+            print(f"⚠️  Warning: DOC_PATH directory not found: {doc_path}")
+    else:
+        logger.info("DOC_PATH not set - local document research disabled")
+        print("ℹ️  Local document research disabled (set DOC_PATH to enable)")
 
     # Determine transport based on environment
     transport = os.getenv("MCP_TRANSPORT", "stdio").lower()
