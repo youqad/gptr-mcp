@@ -6,7 +6,7 @@ Author: Younesse Kaddar
 
 import os
 from typing import List, Union, Set
-from langchain_community.document_loaders import TextLoader
+from pathlib import Path
 
 # Try to import the original - fall back to our own base if needed
 try:
@@ -164,26 +164,25 @@ class ExtendedDocumentLoader(BaseDocumentLoader):
     
     async def _load_text_file(self, file_path: str) -> list:
         """Load a text file with encoding detection and fallback."""
-        try:
-            # Try UTF-8 first with auto-detection fallback
-            loader = TextLoader(
-                file_path, 
-                encoding='utf-8', 
-                autodetect_encoding=True
-            )
-            return loader.load()
-        except UnicodeDecodeError:
-            # Fallback to latin-1 which accepts all byte values
+        # Try different encodings in order
+        encodings = ['utf-8', 'utf-8-sig', 'latin-1', 'cp1252', 'iso-8859-1']
+        path = Path(file_path)
+        
+        for encoding in encodings:
             try:
-                loader = TextLoader(file_path, encoding='latin-1')
-                return loader.load()
+                content = path.read_text(encoding=encoding)
+                # Return in a format similar to what TextLoader would return
+                return [{
+                    'page_content': content,
+                    'metadata': {'source': file_path, 'encoding': encoding}
+                }]
+            except (UnicodeDecodeError, UnicodeError):
+                continue
             except Exception:
-                # If all else fails, try to load as binary and decode lossy
-                return self._load_binary_as_text(file_path)
-        except Exception as e:
-            # Log the error but don't crash - just return empty
-            print(f"Warning: Could not load {file_path}: {e}")
-            return []
+                continue
+        
+        # If all encodings fail, try binary fallback
+        return self._load_binary_as_text(file_path)
     
     def _load_binary_as_text(self, file_path: str) -> list:
         """Last resort: load binary file and decode with replacement chars."""
