@@ -1,6 +1,6 @@
 """
-Enhanced Document Loader for GPT-Researcher MCP
-Supports additional file formats including source code and academic documents
+Document Loader for GPT-Researcher MCP
+Supports 96+ file formats including source code, academic documents, and configuration files
 """
 
 import asyncio
@@ -18,7 +18,7 @@ from langchain_community.document_loaders import (
 )
 
 
-class EnhancedDocumentLoader:
+class DocumentLoader:
     
     TEXT_EXTENSIONS = {
         'tex', 'bib', 'cls', 'sty',
