@@ -138,7 +138,22 @@ To enable local document research:
    ```
 
 2. **Add your documents to the corpus:**
-   - Supported formats: PDF, TXT, Markdown, CSV, Excel, PowerPoint, Word
+   - **Document formats**: PDF, TXT, Markdown, CSV, Excel, PowerPoint, Word, HTML
+   - **Academic formats**: LaTeX (.tex, .bib, .cls, .sty), Org-mode (.org), reStructuredText (.rst), AsciiDoc
+   - **Programming languages**: 
+     - Python (.py, .pyx, .pyi)
+     - Haskell (.hs, .lhs)
+     - JavaScript/TypeScript (.js, .jsx, .ts, .tsx, .mjs, .vue, .svelte)
+     - Java, Scala, Kotlin (.java, .scala, .kt)
+     - C/C++/C#/Objective-C (.c, .h, .cpp, .cc, .cxx, .hpp, .cs, .m)
+     - Rust (.rs), Go (.go), Swift (.swift)
+     - ML family (.ml, .mli, .agda, .lean, .v, .idr)
+     - R (.r, .R), Julia (.jl), MATLAB (.m)
+     - Ruby (.rb), PHP (.php), Perl (.pl, .pm)
+     - Shell scripts (.sh, .bash, .zsh, .fish, .ps1)
+     - Functional languages (.clj, .elm, .ex, .erl, .nim)
+   - **Data/Config**: JSON, YAML, TOML, XML, SQL, GraphQL, INI/CFG
+   - **Web**: CSS/SCSS/SASS/LESS
    - Organize in subdirectories as needed
 
 3. **Set the DOC_PATH environment variable:**

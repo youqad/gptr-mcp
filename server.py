@@ -14,6 +14,17 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 from gpt_researcher import GPTResearcher
 
+# Patch the DocumentLoader to support more file formats
+from document_loader_enhanced import EnhancedDocumentLoader
+import gpt_researcher.document.document
+import gpt_researcher.skills.researcher
+
+# Replace the original DocumentLoader with our enhanced version
+gpt_researcher.document.document.DocumentLoader = EnhancedDocumentLoader
+gpt_researcher.skills.researcher.DocumentLoader = EnhancedDocumentLoader
+# Also patch the module level import
+gpt_researcher.document.DocumentLoader = EnhancedDocumentLoader
+
 # Load environment variables
 load_dotenv()
 
