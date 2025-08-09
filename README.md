@@ -10,18 +10,27 @@
 
 </div>
 
-## 🆕 Enhanced: Local Document Support
+## 🆕 Enhanced: Local Document Support + 162+ File Formats
 
-This fork adds **local document research capabilities** to GPT Researcher MCP, allowing you to:
-- 📚 Search your local document corpus (PDFs, text files, markdown, etc.)
-- 🌐 Perform web-only searches
-- 🔄 Use hybrid mode to search both web and local documents
+This fork adds **local document research capabilities** and **extended file format support** to GPT Researcher MCP:
+
+### 📚 Local Document Research
+- Search your local document corpus (PDFs, text files, markdown, etc.)
+- Perform web-only searches
+- Use hybrid mode to search both web and local documents
+
+### 🚀 Extended Format Support (162+ formats)
+- **Academic**: LaTeX (.tex, .bib, .cls, .sty), Org-mode, reStructuredText
+- **Programming**: Python, JavaScript, TypeScript, Go, Rust, Haskell, and 50+ more languages
+- **Configuration**: JSON, YAML, TOML, XML, INI
+- **Documentation**: Markdown, AsciiDoc, and various README formats
+- **All standard formats**: PDF, Word, Excel, PowerPoint, HTML, CSV
 
 Perfect for:
-- Academic research with private paper collections
-- Corporate knowledge bases
-- Personal document libraries
-- Fact-checking against known sources
+- Academic research with LaTeX papers and source code
+- Software development documentation and codebases
+- Mixed technical document collections
+- Comprehensive knowledge bases
 
 ## Why GPT Researcher MCP?
 
