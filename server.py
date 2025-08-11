@@ -14,19 +14,6 @@ from dotenv import load_dotenv
 from fastmcp import FastMCP
 from gpt_researcher import GPTResearcher
 
-# Import and apply our refactored document loader using clean architecture
-from document_loader_refactored import ExtendedDocumentLoader
-import gpt_researcher.document.document
-import gpt_researcher.skills.researcher
-import gpt_researcher.document
-
-# Replace the DocumentLoader class with our extended version
-# This uses clean architecture with SOLID principles
-# Supports 189+ file formats including academic, programming, and config files
-gpt_researcher.document.document.DocumentLoader = ExtendedDocumentLoader
-gpt_researcher.skills.researcher.DocumentLoader = ExtendedDocumentLoader
-gpt_researcher.document.DocumentLoader = ExtendedDocumentLoader
-
 # Load environment variables
 load_dotenv()
 
@@ -38,7 +25,8 @@ from utils import (
     format_sources_for_response,
     format_context_with_sources, 
     store_research_results,
-    create_research_prompt
+    create_research_prompt,
+    validate_doc_path
 )
 
 logging.basicConfig(
@@ -47,6 +35,23 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# Try to replace the DocumentLoader class with our extended version if available
+try:
+    import gpt_researcher.document.document as gr_doc_document
+    import gpt_researcher.skills.researcher as gr_skills_researcher
+    import gpt_researcher.document as gr_document
+    from document_loader_refactored import ExtendedDocumentLoader
+
+    # Replace with our ExtendedDocumentLoader if import succeeded
+    gr_doc_document.DocumentLoader = ExtendedDocumentLoader
+    if hasattr(gr_skills_researcher, "DocumentLoader"):
+        gr_skills_researcher.DocumentLoader = ExtendedDocumentLoader
+    if hasattr(gr_document, "DocumentLoader"):
+        gr_document.DocumentLoader = ExtendedDocumentLoader
+    logger.info("ExtendedDocumentLoader successfully patched into gpt_researcher")
+except Exception as e:
+    logger.warning(f"ExtendedDocumentLoader not available; using default gpt_researcher loader. Reason: {e}")
 
 # Initialize FastMCP server
 mcp = FastMCP(
@@ -92,10 +97,9 @@ async def research_resource(topic: str) -> str:
     logger.info(f"Conducting new {report_source} research for resource on topic: {actual_topic}")
     
     # Check DOC_PATH for local/hybrid modes
-    if report_source in ["local", "hybrid"]:
-        doc_path = os.getenv("DOC_PATH")
-        if not doc_path or not os.path.exists(doc_path):
-            return f"Error: DOC_PATH not configured properly for {report_source} research"
+    is_valid, doc_path, error = validate_doc_path(report_source)
+    if not is_valid:
+        return f"Error: DOC_PATH not configured properly for {report_source} research"
     
     # Initialize GPT Researcher with report_source
     researcher = GPTResearcher(query=actual_topic, report_source=report_source)
@@ -148,19 +152,9 @@ async def deep_research(query: str, report_source: str = "web") -> Dict[str, Any
         )
     
     # Check DOC_PATH for local/hybrid modes
-    if report_source in ["local", "hybrid"]:
-        doc_path = os.getenv("DOC_PATH")
-        if not doc_path:
-            return handle_exception(
-                ValueError("DOC_PATH environment variable not set. Required for local/hybrid research."),
-                "Research"
-            )
-        if not os.path.exists(doc_path):
-            return handle_exception(
-                ValueError(f"DOC_PATH directory does not exist: {doc_path}"),
-                "Research"
-            )
-        logger.info(f"Using local documents from: {doc_path}")
+    is_valid, doc_path, error = validate_doc_path(report_source)
+    if not is_valid:
+        return error
     
     logger.info(f"Conducting {report_source} research on query: {query}...")
     
@@ -181,8 +175,8 @@ async def deep_research(query: str, report_source: str = "web") -> Dict[str, Any
         sources = researcher.get_research_sources()
         source_urls = researcher.get_source_urls()
         
-        # Store in the research store for the resource API
-        store_research_results(query, context, sources, source_urls)
+        # Store in the research store for the resource API with correct report_source key
+        store_research_results(query, context, sources, source_urls, report_source=report_source)
         
         return create_success_response({
             "research_id": research_id,
@@ -220,18 +214,9 @@ async def quick_search(query: str, report_source: str = "web") -> Dict[str, Any]
         )
     
     # Check DOC_PATH for local/hybrid modes
-    if report_source in ["local", "hybrid"]:
-        doc_path = os.getenv("DOC_PATH")
-        if not doc_path:
-            return handle_exception(
-                ValueError("DOC_PATH environment variable not set. Required for local/hybrid search."),
-                "Quick search"
-            )
-        if not os.path.exists(doc_path):
-            return handle_exception(
-                ValueError(f"DOC_PATH directory does not exist: {doc_path}"),
-                "Quick search"
-            )
+    is_valid, doc_path, error = validate_doc_path(report_source)
+    if not is_valid:
+        return error
     
     logger.info(f"Performing quick {report_source} search on query: {query}...")
     
@@ -372,8 +357,8 @@ def run_server():
             try:
                 file_count = sum(len(files) for _, _, files in os.walk(doc_path))
                 print(f"   Found {file_count} files in corpus")
-            except:
-                pass
+            except (OSError, ValueError) as e:
+                logger.debug(f"Unable to count DOC_PATH files: {e}")
         else:
             logger.warning(f"DOC_PATH set but directory doesn't exist: {doc_path}")
             print(f"⚠️  Warning: DOC_PATH directory not found: {doc_path}")
@@ -405,16 +390,12 @@ def run_server():
             mcp.run(transport="streamable-http", host="0.0.0.0", port=8000)
         else:
             raise ValueError(f"Unsupported transport: {transport}")
-            
-        # Note: If we reach here, the server has stopped
-        logger.info("MCP Server is running...")
-        while True:
-            pass  # Keep the process alive
     except Exception as e:
         logger.error(f"Error running MCP server: {str(e)}")
         print(f"❌ MCP Server error: {str(e)}")
         return
         
+    logger.info("MCP Server stopped")
     print("✅ MCP Server stopped")
 
 
