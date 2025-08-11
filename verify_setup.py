@@ -70,13 +70,13 @@ def main():
     print("\n2b. LOCAL MODULES")
     base_dir = Path(__file__).parent
     utils_ok = (base_dir / "utils.py").exists()
-    docref_ok = (base_dir / "document_loader_refactored.py").exists()
+    docloader_ok = (base_dir / "document_loader.py").exists()
     print(f"   {check_mark(utils_ok)} utils.py present")
-    print(f"   {check_mark(docref_ok)} document_loader_refactored.py present")
+    print(f"   {check_mark(docloader_ok)} document_loader.py present")
     if not utils_ok:
         errors.append("utils.py missing (required by server.py)")
-    if not docref_ok:
-        warnings.append("document_loader_refactored.py missing; server will fallback to default loader")
+    if not docloader_ok:
+        warnings.append("document_loader.py missing; server will fallback to default loader")
 
     # 3. Check environment variables
     print("\n3. ENVIRONMENT VARIABLES")

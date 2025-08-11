@@ -15,7 +15,7 @@ def test_imports():
     
     try:
         # Test importing the refactored loader
-        from document_loader_refactored import ExtendedDocumentLoader
+        from document_loader import ExtendedDocumentLoader
         print("✓ document_loader_refactored imported successfully")
         
         # Test that it has the expected attributes
