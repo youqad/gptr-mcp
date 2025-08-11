@@ -41,7 +41,7 @@ try:
     import gpt_researcher.document.document as gr_doc_document
     import gpt_researcher.skills.researcher as gr_skills_researcher
     import gpt_researcher.document as gr_document
-    from document_loader_refactored import ExtendedDocumentLoader
+    from document_loader import ExtendedDocumentLoader
 
     # Replace with our ExtendedDocumentLoader if import succeeded
     gr_doc_document.DocumentLoader = ExtendedDocumentLoader
