@@ -69,7 +69,12 @@ class ExtendedDocumentLoader(BaseDocumentLoader):  # type: ignore
         try:
             # Resolve to absolute path and check it's within bounds
             resolved = path.resolve()
-            return not any(part.startswith('..') for part in resolved.parts)
+            if hasattr(self, 'path') and self.path:
+                base_dir = Path(self.path).resolve() if isinstance(self.path, str) else self.path.resolve()
+                # Ensure the resolved path is within the base directory
+                return resolved.is_relative_to(base_dir)
+            # If no base path set, check for parent directory references
+            return '..' not in str(resolved)
         except Exception:
             return False
     
